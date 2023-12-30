@@ -3,104 +3,116 @@
 /*                                                        :::      ::::::::   */
 /*   get_next_line_utils.c                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: dda-cunh <dda-cunh@student.42.fr>          +#+  +:+       +#+        */
+/*   By: dda-cunh <dda-cunh@student.42lisboa.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/04/14 21:26:35 by dda-cunh          #+#    #+#             */
-/*   Updated: 2023/04/16 20:44:08 by dda-cunh         ###   ########.fr       */
+/*   Updated: 2023/12/30 21:08:50 by dda-cunh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-int	residual(char *buffer)
+static size_t	strlen(const char *str)
 {
-	int	i;
+	size_t	l;
 
-	i = -1;
-	while (++i < BUFFER_SIZE)
-		if (buffer[i])
-			return (1);
-	return (0);
+	l = 0;
+	if (str)
+		while (str[l])
+			l++;
+	return (l);
 }
 
-int	buff_endl(char *buffer)
+static void	*memmove(void *dest, const void *src, size_t n)
 {
-	int	i;
+	unsigned char	*src_bytes;
+	unsigned char	*dest_bytes;
+	size_t			i;
 
-	i = -1;
-	while (++i < BUFFER_SIZE)
-		if (buffer[i] == '\n')
-			return (1);
-	return (0);
-}
-
-char	*seek_line(char *buffer, char *line, int r, int fd)
-{
-	while (r > 0)
+	if (!src || !dest)
+		return (NULL);
+	src_bytes = (unsigned char *)src;
+	dest_bytes = (unsigned char *)dest;
+	if (dest_bytes >= src_bytes && dest_bytes <= src_bytes + n)
 	{
-		r = read(fd, buffer, BUFFER_SIZE);
-		if (r < 0)
-		{
-			if (*line)
-				free(line);
-			return (NULL);
-		}
-		if (r == 0 && !*line)
-			return (NULL);
-		if (buff_endl(buffer))
-			return (buffjoin(line, buffer, 0, -1));
-		line = buffjoin(line, buffer, 0, -1);
-		if (!line)
-			return (NULL);
+		if (dest)
+			while (n--)
+				dest_bytes[n] = src_bytes[n];
 	}
-	return (line);
+	else
+	{
+		i = 0;
+		while (i < n)
+		{
+			dest_bytes[i] = src_bytes[i];
+			i++;
+		}
+	}
+	return (dest);
+}
+
+int	str_has_c(const char *s, char c)
+{
+	int	i;
+
+	if (s)
+	{
+		i = 0;
+		while (s[i])
+		{
+			if (s[i] == c)
+				return (1);
+			i++;
+		}
+	}
+	return (0);
 }
 
 char	*alloc_concat(char *line, char *buff)
 {
 	char	*concat;
-	size_t	i;
-	size_t	j;
-	size_t	l;
+	size_t	concat_l;
+	size_t	buff_i;
 
-	i = 0;
-	j = -1;
-	l = 0;
-	while (line[i])
-		i++;
-	while (++j < BUFFER_SIZE)
+	concat_l = strlen(line);
+	buff_i = 0;
+	while (buff_i < BUFFER_SIZE)
 	{
-		if (buff[j])
-			l++;
-		if (buff[j] == '\n')
+		if (buff[buff_i])
+			concat_l++;
+		if (buff[buff_i] == '\n')
 			break ;
+		buff_i++;
 	}
-	concat = malloc(i + l + 1);
+	concat = calloc(concat_l + 1, sizeof(char));
 	return (concat);
 }
 
-char	*buffjoin(char *line, char *buff, int i, int j)
+char	*buff_join(char *line, char *buff)
 {
+	long		concat_i;
+	long		buff_i;
 	char		*concat;
 
 	concat = alloc_concat(line, buff);
 	if (!concat)
 		return (NULL);
-	while (*line)
-		concat[i++] = *line++;
-	if (*(line - i))
-		free(line - i);
-	while (++j < BUFFER_SIZE && buff[j] != '\n')
+	concat_i = strlen(line);
+	memmove(concat, line, concat_i);
+	if (line)
+		free(line);
+	buff_i = 0;
+	while (buff_i < BUFFER_SIZE && buff[buff_i] != '\n')
 	{
-		if (buff[j] && buff[j] != '\n')
-			concat[i++] = buff[j];
-		buff[j] = '\0';
+		if (buff[buff_i] && buff[buff_i] != '\n')
+			concat[concat_i++] = buff[buff_i];
+		buff[buff_i] = '\0';
+		buff_i++;
 	}
-	if (j < BUFFER_SIZE && buff[j] == '\n')
+	if (buff_i < BUFFER_SIZE && buff[buff_i] == '\n')
 	{
-		buff[j] = '\0';
-		concat[i++] = '\n';
+		buff[buff_i] = '\0';
+		concat[concat_i++] = '\n';
 	}
-	concat[i] = '\0';
 	return (concat);
 }
