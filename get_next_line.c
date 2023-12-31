@@ -6,56 +6,67 @@
 /*   By: dda-cunh <dda-cunh@student.42lisboa.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/04/14 21:26:03 by dda-cunh          #+#    #+#             */
-/*   Updated: 2023/12/30 21:11:08 by dda-cunh         ###   ########.fr       */
+/*   Updated: 2023/12/31 13:22:10 by dda-cunh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-static int	residual(char *buffer)
+static t_bool	buff_has_residual(char *buffer)
 {
 	int	i;
 
 	i = -1;
 	while (++i < BUFFER_SIZE)
 		if (buffer[i])
-			return (1);
-	return (0);
+			return (TRUE);
+	return (FALSE);
 }
 
-static char	*seek_line(char *buffer, char *line, int fd)
+static t_bool	str_has_c(const char *str, char c)
 {
-	long	bytes_read;
+	int	i;
 
-	bytes_read = 1;
-	while (bytes_read > 0)
+	if (str)
 	{
-		if (str_has_c(line, '\n'))
-			break ;
-		bytes_read = read(fd, buffer, BUFFER_SIZE);
-		if (bytes_read < 0)
+		i = 0;
+		while (str[i])
 		{
-			if (line)
-				free(line);
-			return (NULL);
+			if (str[i] == c)
+				return (TRUE);
+			i++;
 		}
-		if (bytes_read == 0)
-			break ;
-		line = buff_join(line, buffer);
-		if (!line)
-			return (NULL);
 	}
-	return (line);
+	return (FALSE);
+}
+
+static char	*seek_line(char *buffer, char *line, long bytes_read, int fd)
+{
+	if (str_has_c(line, '\n'))
+		return (line);
+	bytes_read = read(fd, buffer, BUFFER_SIZE);
+	if (bytes_read < 0)
+	{
+		if (line)
+			free(line);
+		return (NULL);
+	}
+	if (bytes_read == 0)
+		return (line);
+	line = line_join(line, buffer);
+	if (!line)
+		return (NULL);
+	return (seek_line(buffer, line, bytes_read, fd));
 }
 
 char	*get_next_line(int fd)
 {
-	static char	buffer[BUFFER_SIZE];
+	static char	buffer[BUFFER_SIZE] = {0};
 	char		*line;
 
 	line = NULL;
-	if (residual(buffer))
-		line = buff_join(line, buffer);
-	line = seek_line(buffer, line, fd);
+	if (buff_has_residual(buffer))
+		line = line_join(line, buffer);
+	line = seek_line(buffer, line, 1, fd);
 	return (line);
 }

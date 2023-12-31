@@ -6,7 +6,7 @@
 /*   By: dda-cunh <dda-cunh@student.42lisboa.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/04/14 21:26:35 by dda-cunh          #+#    #+#             */
-/*   Updated: 2023/12/30 21:08:50 by dda-cunh         ###   ########.fr       */
+/*   Updated: 2023/12/31 13:51:42 by dda-cunh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,16 @@ static size_t	strlen(const char *str)
 		while (str[l])
 			l++;
 	return (l);
+}
+
+static void	*memset(void *s, int c, size_t n)
+{
+	unsigned char	*bytes;
+
+	bytes = (unsigned char *)s;
+	while (n--)
+		*bytes++ = (unsigned char)c;
+	return (s);
 }
 
 static void	*memmove(void *dest, const void *src, size_t n)
@@ -51,48 +61,40 @@ static void	*memmove(void *dest, const void *src, size_t n)
 	return (dest);
 }
 
-int	str_has_c(const char *s, char c)
+static char	*alloc_concat(char *line, char *buff)
 {
-	int	i;
-
-	if (s)
-	{
-		i = 0;
-		while (s[i])
-		{
-			if (s[i] == c)
-				return (1);
-			i++;
-		}
-	}
-	return (0);
-}
-
-char	*alloc_concat(char *line, char *buff)
-{
-	char	*concat;
 	size_t	concat_l;
+	size_t	concat_i;
 	size_t	buff_i;
+	char	*concat;
 
 	concat_l = strlen(line);
 	buff_i = 0;
+	while (buff_i < BUFFER_SIZE && !buff[buff_i])
+		buff_i++;
 	while (buff_i < BUFFER_SIZE)
 	{
-		if (buff[buff_i])
-			concat_l++;
+		concat_l++;
 		if (buff[buff_i] == '\n')
 			break ;
 		buff_i++;
 	}
-	concat = calloc(concat_l + 1, sizeof(char));
+	concat = malloc((concat_l + 1) * sizeof(char));
+	concat_i = 0;
+	while (concat_i < concat_l + 1)
+	{
+		concat[concat_i] = '\0';
+		concat_i++;
+	}
 	return (concat);
 }
 
-char	*buff_join(char *line, char *buff)
+char	*line_join(char *line, char *buff)
 {
-	long		concat_i;
-	long		buff_i;
-	char		*concat;
+	long	buff_empty_i;
+	long	breakline_i;
+	long	concat_i;
+	char	*concat;
 
 	concat = alloc_concat(line, buff);
 	if (!concat)
@@ -101,18 +103,14 @@ char	*buff_join(char *line, char *buff)
 	memmove(concat, line, concat_i);
 	if (line)
 		free(line);
-	buff_i = 0;
-	while (buff_i < BUFFER_SIZE && buff[buff_i] != '\n')
-	{
-		if (buff[buff_i] && buff[buff_i] != '\n')
-			concat[concat_i++] = buff[buff_i];
-		buff[buff_i] = '\0';
-		buff_i++;
-	}
-	if (buff_i < BUFFER_SIZE && buff[buff_i] == '\n')
-	{
-		buff[buff_i] = '\0';
-		concat[concat_i++] = '\n';
-	}
+	buff_empty_i = 0;
+	while (buff_empty_i < BUFFER_SIZE && !buff[buff_empty_i])
+		buff_empty_i++;
+	breakline_i = buff_empty_i;
+	while (breakline_i < BUFFER_SIZE)
+		if (buff[breakline_i++] == '\n')
+			break ;
+	memmove(concat + concat_i, buff + buff_empty_i, breakline_i - buff_empty_i);
+	memset(buff + buff_empty_i, 0, breakline_i - buff_empty_i);
 	return (concat);
 }
